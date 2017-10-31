@@ -1,28 +1,29 @@
-default: run
+default: build
 
-build: didiOS.iso
+build: target/kernel.bin
 
-run: didiOS.iso
-	qemu-system-x86_64 -cdrom didiOS.iso
+run: target/didiOS.iso
+	qemu-system-x86_64 -cdrom target/didiOS.iso
 
-multiboot_header.o: multiboot_header.asm
-	nasm -f elf64 multiboot_header.asm
+cargo:
+	xargo build --release --target x86_64-unknown-didios-gnu
 
-boot.o: boot.asm
-	nasm -f elf64 boot.asm
+target/multiboot_header.o: src/asm/multiboot_header.asm
+	mkdir -p target
+	nasm -f elf64 src/asm/multiboot_header.asm -o target/multiboot_header.o
 
-kernel.bin: multiboot_header.o boot.o linker.ld
-	bin/x86_64-linux-ld --nmagic -o kernel.bin --script linker.ld multiboot_header.o boot.o
+target/boot.o: src/asm/boot.asm
+	mkdir -p target
+	nasm -f elf64 src/asm/boot.asm -o target/boot.o
 
-didiOS.iso: kernel.bin grub.cfg
-	mkdir -p isofiles/boot/grub
-	cp grub.cfg isofiles/boot/grub
-	cp kernel.bin isofiles/boot
-	grub-mkrescue -o didiOS.iso isofiles
+target/kernel.bin: target/multiboot_header.o target/boot.o src/asm/linker.ld cargo
+	bin/x86_64-linux-ld --nmagic -o target/kernel.bin --script src/asm/linker.ld target/multiboot_header.o target/boot.o target/x86_64-unknown-didios-gnu/release/libdidios.a
+
+target/didiOS.iso: target/kernel.bin src/asm/grub.cfg
+	mkdir -p target/isofiles/boot/grub
+	cp src/asm/grub.cfg target/isofiles/boot/grub
+	cp target/kernel.bin target/isofiles/boot
+	grub-mkrescue -o target/didiOS.iso target/isofiles
 
 clean:
-	rm -f multiboot_header.o
-	rm -f boot.o
-	rm -f kernel.bin
-	rm -rf isofiles
-	rm -f didiOS.iso
+	cargo clean

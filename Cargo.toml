@@ -1,0 +1,12 @@
+[package]
+name = "didios"
+version = "0.1.0"
+authors = ["Thomas Graves <freecomey@tuta.io>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+panic = "abort"
+
+[dependencies]
